@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>AWR_WRT | فحص حالة الجهاز</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 400px; text-align: center; }
+        input { width: 90%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin: 15px 0; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; }
+        #loader { display: none; margin: 20px 0; color: #555; }
+        #result { display: none; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; }
+        .device-img { width: 200px; margin-bottom: 15px; }
+        .status { font-weight: bold; color: green; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>لوحة تحكم AWR_WRT</h2>
+    <p>أدخل الـ ID الخاص بجهازك للاستعلام</p>
+    <input type="text" id="deviceId" placeholder="أدخل ID الجهاز">
+    <button onclick="requestData()">فحص الآن</button>
+    
+    <div id="loader">جاري معالجة الطلب.. انتظر 15 ثانية</div>
+
+    <div id="result">
+        <img id="dImg" src="" class="device-img">
+        <h3 id="dModel"></h3>
+        <p>الإصدار: <span id="dVer"></span></p>
+        <p>الحالة: <span id="dStatus" class="status"></span></p>
+    </div>
+</div>
+
+<script>
+    const GITHUB_USER = "YOUR_USERNAME"; // ضع اسم مستخدم جيت هاب هنا
+    const PRIVATE_REPO = "Status-Privet";
+    // ملاحظة: التوكن هنا يجب أن يكون Fine-grained Token بصلاحية Actions فقط لضمان الأمان
+    const FETCH_TOKEN = "github_pat_XXXXXX"; 
+
+    async function requestData() {
+        const id = document.getElementById('deviceId').value.trim();
+        if(!id) return alert("أدخل الـ ID");
+
+        document.getElementById('loader').style.display = "block";
+        document.getElementById('result').style.display = "none";
+
+        // 1. إرسال إشارة للأكشن في المستودع الخاص
+        try {
+            const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${PRIVATE_REPO}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${FETCH_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    event_type: 'request_device_data',
+                    client_payload: { device_id: id }
+                })
+            });
+
+            if(res.ok || res.status === 204) {
+                // انتظر 15 ثانية حتى ينتهي الأكشن من النسخ
+                setTimeout(() => fetchActualData(id), 15000);
+            } else {
+                throw new Error("فشل إرسال الطلب");
+            }
+        } catch (e) {
+            alert(e.message);
+            document.getElementById('loader').style.display = "none";
+        }
+    }
+
+    async function fetchActualData(id) {
+        const res = await fetch(`data/${id}.json?t=${Date.now()}`);
+        if(res.ok) {
+            const data = await res.json();
+            document.getElementById('dModel').innerText = data.model;
+            document.getElementById('dVer').innerText = data.version;
+            document.getElementById('dStatus').innerText = data.online ? "متصل" : "غير متصل";
+            
+            // عرض الصورة بناءً على الموديل
+            if(data.model === "jcgq20") {
+                document.getElementById('dImg').src = "assets/jcgq20.png";
+            } else {
+                document.getElementById('dImg').src = "assets/generic.png";
+            }
+            
+            document.getElementById('result').style.display = "block";
+        } else {
+            alert("لم يتم العثور على الجهاز أو انتهت جلسة الفحص");
+        }
+        document.getElementById('loader').style.display = "none";
+    }
+</script>
+</body>
+</html>
