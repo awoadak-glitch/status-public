@@ -72,7 +72,6 @@
         button:hover { background: #0056b3; transform: translateY(-2px); }
         button:disabled { background: #444; cursor: not-allowed; }
 
-        /* حالة التحميل */
         #loader { display: none; margin-top: 20px; }
         .spinner {
             border: 4px solid rgba(255,255,255,0.1);
@@ -85,7 +84,6 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* منطقة النتائج */
         #resultArea {
             display: none;
             margin-top: 30px;
@@ -116,7 +114,7 @@
     <p class="subtitle">أدخل معرف الجهاز للحصول على بيانات الحالة المباشرة</p>
 
     <div class="input-group">
-        <input type="text" id="deviceId" placeholder="مثلاً: 550e8400-e29b-41d4...">
+        <input type="text" id="deviceId" placeholder="أدخل ID الجهاز هنا">
     </div>
 
     <button id="searchBtn" onclick="initiateSearch()">استعلام عن الجهاز</button>
@@ -145,12 +143,11 @@
 </div>
 
 <script>
-    // --- إعدادات جيت هاب (يجب تعديلها) ---
+    // --- إعدادات جيت هاب المركبة ---
     const CONFIG = {
-        owner: 'YOUR_GITHUB_USERNAME', // اسم المستخدم الخاص بك
-        privateRepo: 'Status-Privet',  // اسم مستودع الحالة الخاص
-        // التوكن المحدود (Fine-grained) الذي يحمل صلاحية Actions فقط
-        token: 'github_pat_XXXXXXXXXXXXXXXXXXXX' 
+        owner: 'awoadak-glitch',
+        privateRepo: 'Status-Privet',
+        token: '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' 
     };
 
     async function initiateSearch() {
@@ -161,13 +158,11 @@
 
         if (!id) return alert("يرجى إدخال معرف الجهاز أولاً");
 
-        // إخفاء النتائج السابقة وإظهار التحميل
         resultArea.style.display = "none";
         loader.style.display = "block";
         btn.disabled = true;
 
         try {
-            // 1. إرسال إشارة للمستودع الخاص لتجهيز الملف
             const dispatchRes = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.privateRepo}/dispatches`, {
                 method: 'POST',
                 headers: {
@@ -182,10 +177,9 @@
 
             if (dispatchRes.status === 204 || dispatchRes.ok) {
                 document.getElementById('loaderText').innerText = "جاري مزامنة الملف (قد يستغرق 15 ثانية)...";
-                // 2. البدء في فحص وجود الملف (Polling)
                 pollForData(id);
             } else {
-                throw new Error("فشل إرسال طلب المزامنة");
+                throw new Error("فشل إرسال طلب المزامنة - تأكد من صلاحية التوكن");
             }
         } catch (err) {
             alert("خطأ: " + err.message);
@@ -196,11 +190,11 @@
 
     async function pollForData(id) {
         let attempts = 0;
-        const maxAttempts = 10; // سنحاول لمدة 20 ثانية تقريباً
+        const maxAttempts = 12; 
 
         const interval = setInterval(async () => {
             attempts++;
-            // إضافة التوقيت لمنع المتصفح من كاش الملف القديم
+            // سحب الملف مباشرة من المجلد العام
             const checkRes = await fetch(`data/${id}.json?t=${new Date().getTime()}`);
             
             if (checkRes.ok) {
@@ -209,29 +203,28 @@
                 displayData(data);
             } else if (attempts >= maxAttempts) {
                 clearInterval(interval);
-                alert("تعذر العثور على الجهاز. تأكد من أن المعرف صحيح أو أن الجهاز قام برفع حالته مسبقاً.");
+                alert("لم نتمكن من العثور على الجهاز حالياً. تأكد من الـ ID أو حاول مجدداً بعد قليل.");
                 resetUI();
             }
-        }, 2500); // فحص كل ثانيتين ونصف
+        }, 3000); 
     }
 
     function displayData(data) {
         document.getElementById('loader').style.display = "none";
         document.getElementById('searchBtn').disabled = false;
         
-        document.getElementById('resModel').innerText = data.model.toUpperCase();
-        document.getElementById('resVer').innerText = data.version;
+        document.getElementById('resModel').innerText = data.model ? data.model.toUpperCase() : "UNKNOWN";
+        document.getElementById('resVer').innerText = data.version || "1.0.0";
         
         const statusTag = document.getElementById('resStatus');
         statusTag.innerText = data.online ? "متصل" : "غير متصل";
         statusTag.className = `status-tag ${data.online ? 'online' : 'offline'}`;
 
-        // تحديد الصورة بناءً على الموديل
         const img = document.getElementById('resImg');
         if (data.model === "jcgq20") {
             img.src = "assets/q20.png";
         } else {
-            img.src = "assets/generic.png";
+            img.src = "assets/generic.png"; // تأكد من وجود هذه الصورة في Assets
         }
 
         if (data.update_available) {
