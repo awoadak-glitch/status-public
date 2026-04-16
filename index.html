@@ -121,7 +121,7 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <p id="loaderText">جاري استدعاء البيانات من السيرفر...</p>
+        <p id="loaderText">جاري البحث في قاعدة البيانات المفتوحة...</p>
     </div>
 
     <div id="resultArea">
@@ -143,13 +143,6 @@
 </div>
 
 <script>
-    // --- إعدادات جيت هاب المركبة ---
-    const CONFIG = {
-        owner: 'awoadak-glitch',
-        privateRepo: 'Status-Privet',
-        token: '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' 
-    };
-
     async function initiateSearch() {
         const id = document.getElementById('deviceId').value.trim();
         const btn = document.getElementById('searchBtn');
@@ -158,55 +151,30 @@
 
         if (!id) return alert("يرجى إدخال معرف الجهاز أولاً");
 
+        // تهيئة الواجهة
         resultArea.style.display = "none";
         loader.style.display = "block";
         btn.disabled = true;
 
         try {
-            const dispatchRes = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.privateRepo}/dispatches`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${CONFIG.token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                },
-                body: JSON.stringify({
-                    event_type: 'request_device_data',
-                    client_payload: { device_id: id }
-                })
+            // جلب ملف JSON مباشرة من مجلد data في المستودع العام
+            // t= تمثل طابعاً زمنياً لكسر الـ Cache وضمان جلب أحدث البيانات
+            const response = await fetch(`data/${id}.json?t=${new Date().getTime()}`, {
+                cache: "no-store"
             });
-
-            if (dispatchRes.status === 204 || dispatchRes.ok) {
-                document.getElementById('loaderText').innerText = "جاري مزامنة الملف (قد يستغرق 15 ثانية)...";
-                pollForData(id);
-            } else {
-                throw new Error("فشل إرسال طلب المزامنة - تأكد من صلاحية التوكن");
-            }
-        } catch (err) {
-            alert("خطأ: " + err.message);
-            loader.style.display = "none";
-            btn.disabled = false;
-        }
-    }
-
-    async function pollForData(id) {
-        let attempts = 0;
-        const maxAttempts = 12; 
-
-        const interval = setInterval(async () => {
-            attempts++;
-            // سحب الملف مباشرة من المجلد العام
-            const checkRes = await fetch(`data/${id}.json?t=${new Date().getTime()}`);
             
-            if (checkRes.ok) {
-                clearInterval(interval);
-                const data = await checkRes.json();
+            if (response.ok) {
+                const data = await response.json();
                 displayData(data);
-            } else if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                alert("لم نتمكن من العثور على الجهاز حالياً. تأكد من الـ ID أو حاول مجدداً بعد قليل.");
+            } else {
+                alert("تعذر العثور على الجهاز. تأكد من أن الـ ID صحيح.");
                 resetUI();
             }
-        }, 3000); 
+        } catch (err) {
+            console.error(err);
+            alert("حدث خطأ أثناء محاولة جلب البيانات.");
+            resetUI();
+        }
     }
 
     function displayData(data) {
@@ -221,14 +189,18 @@
         statusTag.className = `status-tag ${data.online ? 'online' : 'offline'}`;
 
         const img = document.getElementById('resImg');
+        // عرض الصورة بناءً على الموديل
         if (data.model === "jcgq20") {
             img.src = "assets/q20.png";
         } else {
-            img.src = "assets/generic.png"; // تأكد من وجود هذه الصورة في Assets
+            img.src = "assets/generic.png";
         }
 
-        if (data.update_available) {
+        // إظهار تنبيه التحديث إذا وجد
+        if (data.update_available === true) {
             document.getElementById('updateNotice').style.display = "block";
+        } else {
+            document.getElementById('updateNotice').style.display = "none";
         }
 
         document.getElementById('resultArea').style.display = "block";
