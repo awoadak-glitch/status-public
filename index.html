@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWR_WRT | لوحة الاستعلام الذكية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --dark-bg: #1a1a2e;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--dark-bg);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        h2 { margin-bottom: 10px; color: #fff; }
+        p.subtitle { color: #aaa; font-size: 14px; margin-bottom: 25px; }
+
+        .input-group { position: relative; margin-bottom: 20px; }
+        input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: var(--primary-color); background: rgba(255, 255, 255, 0.15); }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background: #0056b3; transform: translateY(-2px); }
+        button:disabled { background: #444; cursor: not-allowed; }
+
+        /* حالة التحميل */
+        #loader { display: none; margin-top: 20px; }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* منطقة النتائج */
+        #resultArea {
+            display: none;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .device-img { width: 180px; border-radius: 10px; margin-bottom: 15px; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
+        .label { color: #aaa; }
+        .value { font-weight: bold; }
+        .status-tag {
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+        }
+        .online { background: var(--success-color); }
+        .offline { background: var(--danger-color); }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <h2>نظام AWR_WRT الذكي</h2>
+    <p class="subtitle">أدخل معرف الجهاز للحصول على بيانات الحالة المباشرة</p>
+
+    <div class="input-group">
+        <input type="text" id="deviceId" placeholder="مثلاً: 550e8400-e29b-41d4...">
+    </div>
+
+    <button id="searchBtn" onclick="initiateSearch()">استعلام عن الجهاز</button>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p id="loaderText">جاري استدعاء البيانات من السيرفر...</p>
+    </div>
+
+    <div id="resultArea">
+        <img id="resImg" src="" class="device-img" alt="Device">
+        <h3 id="resModel"></h3>
+        
+        <div class="info-row">
+            <span class="label">الإصدار الحالي:</span>
+            <span class="value" id="resVer"></span>
+        </div>
+        <div class="info-row">
+            <span class="label">حالة الاتصال:</span>
+            <span id="resStatus" class="status-tag"></span>
+        </div>
+        <div id="updateNotice" style="color: #f1c40f; font-size: 13px; margin-top: 10px; display: none;">
+            ⚠️ يوجد تحديث متاح لهذا الجهاز
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- إعدادات جيت هاب (يجب تعديلها) ---
+    const CONFIG = {
+        owner: 'YOUR_GITHUB_USERNAME', // اسم المستخدم الخاص بك
+        privateRepo: 'Status-Privet',  // اسم مستودع الحالة الخاص
+        // التوكن المحدود (Fine-grained) الذي يحمل صلاحية Actions فقط
+        token: 'github_pat_XXXXXXXXXXXXXXXXXXXX' 
+    };
+
+    async function initiateSearch() {
+        const id = document.getElementById('deviceId').value.trim();
+        const btn = document.getElementById('searchBtn');
+        const loader = document.getElementById('loader');
+        const resultArea = document.getElementById('resultArea');
+
+        if (!id) return alert("يرجى إدخال معرف الجهاز أولاً");
+
+        // إخفاء النتائج السابقة وإظهار التحميل
+        resultArea.style.display = "none";
+        loader.style.display = "block";
+        btn.disabled = true;
+
+        try {
+            // 1. إرسال إشارة للمستودع الخاص لتجهيز الملف
+            const dispatchRes = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.privateRepo}/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CONFIG.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    event_type: 'request_device_data',
+                    client_payload: { device_id: id }
+                })
+            });
+
+            if (dispatchRes.status === 204 || dispatchRes.ok) {
+                document.getElementById('loaderText').innerText = "جاري مزامنة الملف (قد يستغرق 15 ثانية)...";
+                // 2. البدء في فحص وجود الملف (Polling)
+                pollForData(id);
+            } else {
+                throw new Error("فشل إرسال طلب المزامنة");
+            }
+        } catch (err) {
+            alert("خطأ: " + err.message);
+            loader.style.display = "none";
+            btn.disabled = false;
+        }
+    }
+
+    async function pollForData(id) {
+        let attempts = 0;
+        const maxAttempts = 10; // سنحاول لمدة 20 ثانية تقريباً
+
+        const interval = setInterval(async () => {
+            attempts++;
+            // إضافة التوقيت لمنع المتصفح من كاش الملف القديم
+            const checkRes = await fetch(`data/${id}.json?t=${new Date().getTime()}`);
+            
+            if (checkRes.ok) {
+                clearInterval(interval);
+                const data = await checkRes.json();
+                displayData(data);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                alert("تعذر العثور على الجهاز. تأكد من أن المعرف صحيح أو أن الجهاز قام برفع حالته مسبقاً.");
+                resetUI();
+            }
+        }, 2500); // فحص كل ثانيتين ونصف
+    }
+
+    function displayData(data) {
+        document.getElementById('loader').style.display = "none";
+        document.getElementById('searchBtn').disabled = false;
+        
+        document.getElementById('resModel').innerText = data.model.toUpperCase();
+        document.getElementById('resVer').innerText = data.version;
+        
+        const statusTag = document.getElementById('resStatus');
+        statusTag.innerText = data.online ? "متصل" : "غير متصل";
+        statusTag.className = `status-tag ${data.online ? 'online' : 'offline'}`;
+
+        // تحديد الصورة بناءً على الموديل
+        const img = document.getElementById('resImg');
+        if (data.model === "jcgq20") {
+            img.src = "assets/q20.png";
+        } else {
+            img.src = "assets/generic.png";
+        }
+
+        if (data.update_available) {
+            document.getElementById('updateNotice').style.display = "block";
+        }
+
+        document.getElementById('resultArea').style.display = "block";
+    }
+
+    function resetUI() {
+        document.getElementById('loader').style.display = "none";
+        document.getElementById('searchBtn').disabled = false;
+    }
+</script>
+
+</body>
+</html>
