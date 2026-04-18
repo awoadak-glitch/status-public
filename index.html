@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AWR_WRT | لوحة الاستعلام الذكية</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --dark-bg: #1a1a2e;
+            --accent-color: #00d4ff;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f1c40f;
+            --dark-bg: #0f172a;
         }
 
         body {
             font-family: 'Cairo', sans-serif;
             background: var(--dark-bg);
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
             color: white;
             margin: 0;
             display: flex;
@@ -27,118 +28,144 @@
         }
 
         .main-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            width: 100%;
-            max-width: 450px;
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 480px;
             text-align: center;
         }
 
-        h2 { margin-bottom: 10px; color: #fff; }
-        p.subtitle { color: #aaa; font-size: 14px; margin-bottom: 25px; }
+        h2 { font-weight: 700; margin-bottom: 5px; background: linear-gradient(to left, #fff, var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p.subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
 
-        .input-group { position: relative; margin-bottom: 20px; }
         input {
             width: 100%;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid transparent;
-            border-radius: 10px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
             color: white;
             font-size: 16px;
             text-align: center;
             outline: none;
-            transition: 0.3s;
+            transition: all 0.3s ease;
             box-sizing: border-box;
         }
-        input:focus { border-color: var(--primary-color); background: rgba(255, 255, 255, 0.15); }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 15px rgba(0, 123, 255, 0.3); }
 
         button {
             width: 100%;
-            padding: 15px;
-            background: var(--primary-color);
+            margin-top: 15px;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
         }
-        button:hover { background: #0056b3; transform: translateY(-2px); }
-        button:disabled { background: #444; cursor: not-allowed; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        #loader { display: none; margin-top: 20px; }
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.1);
-            border-left-color: var(--primary-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
+        /* منطقة النتائج */
         #resultArea {
             display: none;
-            margin-top: 30px;
+            margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid rgba(255,255,255,0.1);
-            animation: fadeIn 0.5s ease;
+            animation: fadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .device-img { width: 180px; border-radius: 10px; margin-bottom: 15px; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
-        .label { color: #aaa; }
-        .value { font-weight: bold; }
-        .status-tag {
-            padding: 4px 12px;
-            border-radius: 50px;
-            font-size: 12px;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 20px 0;
         }
-        .online { background: var(--success-color); }
-        .offline { background: var(--danger-color); }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+        .stat-value { display: block; font-size: 16px; font-weight: 700; color: #f8fafc; }
+
+        .device-img { width: 140px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3)); margin-bottom: 10px; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .online { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+        .offline { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; }
+
+        .update-banner {
+            background: rgba(241, 196, 15, 0.1);
+            color: var(--warning-color);
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            border: 1px dashed var(--warning-color);
+            margin-top: 15px;
+        }
+
+        .sync-time { font-size: 11px; color: #64748b; margin-top: 15px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="main-card">
-    <h2>نظام AWR_WRT الذكي</h2>
-    <p class="subtitle">أدخل معرف الجهاز للحصول على بيانات الحالة المباشرة</p>
+    <h2>AWR_WRT Smart Panel</h2>
+    <p class="subtitle">نظام الاستعلام المباشر عن حالة أجهزة التوجيه</p>
 
-    <div class="input-group">
-        <input type="text" id="deviceId" placeholder="أدخل ID الجهاز هنا">
-    </div>
+    <input type="text" id="deviceId" placeholder="أدخل معرف الجهاز (ID)">
+    <button id="searchBtn" onclick="initiateSearch()">تحليل البيانات</button>
 
-    <button id="searchBtn" onclick="initiateSearch()">استعلام عن الجهاز</button>
-
-    <div id="loader">
-        <div class="spinner"></div>
-        <p id="loaderText">جاري البحث في قاعدة البيانات المفتوحة...</p>
+    <div id="loader" style="display:none; margin-top: 20px;">
+        <p style="color: var(--accent-color)">جاري جلب البيانات السحابية...</p>
     </div>
 
     <div id="resultArea">
+        <div id="statusBadge" class="status-badge"></div>
+        <br>
         <img id="resImg" src="" class="device-img" alt="Device">
-        <h3 id="resModel"></h3>
+        <h3 id="resModel" style="margin: 5px 0; letter-spacing: 1px;"></h3>
         
-        <div class="info-row">
-            <span class="label">الإصدار الحالي:</span>
-            <span class="value" id="resVer"></span>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">الإصدار</span>
+                <span class="stat-value" id="resVer"></span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">المستخدمين</span>
+                <span class="stat-value" id="resUsers">0</span>
+            </div>
+            <div class="stat-box" style="grid-column: span 2;">
+                <span class="stat-label">إجمالي استهلاك البيانات</span>
+                <span class="stat-value" id="resUsage">0 MB</span>
+            </div>
         </div>
-        <div class="info-row">
-            <span class="label">حالة الاتصال:</span>
-            <span id="resStatus" class="status-tag"></span>
+
+        <div id="updateNotice" class="update-banner" style="display: none;">
+            🔔 تحديث جديد متاح لنظامك الحالي
         </div>
-        <div id="updateNotice" style="color: #f1c40f; font-size: 13px; margin-top: 10px; display: none;">
-            ⚠️ يوجد تحديث متاح لهذا الجهاز
-        </div>
+
+        <div class="sync-time">آخر مزامنة: <span id="resSync">---</span></div>
     </div>
 </div>
 
@@ -149,30 +176,24 @@
         const loader = document.getElementById('loader');
         const resultArea = document.getElementById('resultArea');
 
-        if (!id) return alert("يرجى إدخال معرف الجهاز أولاً");
+        if (!id) return;
 
-        // تهيئة الواجهة
         resultArea.style.display = "none";
         loader.style.display = "block";
         btn.disabled = true;
 
         try {
-            // جلب ملف JSON مباشرة من مجلد data في المستودع العام
-            // t= تمثل طابعاً زمنياً لكسر الـ Cache وضمان جلب أحدث البيانات
-            const response = await fetch(`data/${id}.json?t=${new Date().getTime()}`, {
-                cache: "no-store"
-            });
+            const response = await fetch(`data/${id}.json?t=${Date.now()}`, { cache: "no-store" });
             
             if (response.ok) {
                 const data = await response.json();
                 displayData(data);
             } else {
-                alert("تعذر العثور على الجهاز. تأكد من أن الـ ID صحيح.");
+                alert("لم يتم العثور على بيانات لهذا المعرف.");
                 resetUI();
             }
         } catch (err) {
-            console.error(err);
-            alert("حدث خطأ أثناء محاولة جلب البيانات.");
+            alert("خطأ في الاتصال بالخادم.");
             resetUI();
         }
     }
@@ -181,27 +202,26 @@
         document.getElementById('loader').style.display = "none";
         document.getElementById('searchBtn').disabled = false;
         
-        document.getElementById('resModel').innerText = data.model ? data.model.toUpperCase() : "UNKNOWN";
-        document.getElementById('resVer').innerText = data.version || "1.0.0";
+        // تعبئة البيانات الأساسية
+        document.getElementById('resModel').innerText = data.model ? data.model.toUpperCase() : "AWR DEVICE";
+        document.getElementById('resVer').innerText = data.version || "---";
+        document.getElementById('resSync').innerText = data.last_sync || "غير متوفر";
         
-        const statusTag = document.getElementById('resStatus');
-        statusTag.innerText = data.online ? "متصل" : "غير متصل";
-        statusTag.className = `status-tag ${data.online ? 'online' : 'offline'}`;
+        // تعبئة الإضافات الجديدة
+        document.getElementById('resUsers').innerText = data.users_online || "0";
+        document.getElementById('resUsage').innerText = (data.usage_total_mb || 0) + " MB";
 
+        // حالة الاتصال
+        const statusBadge = document.getElementById('statusBadge');
+        statusBadge.innerText = data.online ? "متصل الآن" : "غير متصل";
+        statusBadge.className = `status-badge ${data.online ? 'online' : 'offline'}`;
+
+        // الصورة بناءً على الموديل
         const img = document.getElementById('resImg');
-        // عرض الصورة بناءً على الموديل
-        if (data.model === "jcgq20") {
-            img.src = "assets/q20.png";
-        } else {
-            img.src = "assets/generic.png";
-        }
+        img.src = data.model === "jcgq20" ? "assets/q20.png" : "assets/generic.png";
 
-        // إظهار تنبيه التحديث إذا وجد
-        if (data.update_available === true) {
-            document.getElementById('updateNotice').style.display = "block";
-        } else {
-            document.getElementById('updateNotice').style.display = "none";
-        }
+        // التحديث
+        document.getElementById('updateNotice').style.display = data.update_available ? "block" : "none";
 
         document.getElementById('resultArea').style.display = "block";
     }
