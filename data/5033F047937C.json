@@ -3,6 +3,8 @@
   "model": "jcgq20",
   "version": "24.10.8",
   "online": true,
-  "update_available": true,
-  "last_sync": "2026-04-18 04:40:58"
+  "update_available": false,
+  "users_online": 2,
+  "usage_total_mb": 0,
+  "last_sync": "2026-03-25 20:11:25"
 }
